@@ -34,6 +34,7 @@ Henter data direkte fra Rejseplanens HTML-endpoint – ingen API-nøgle nødvend
 | `expected_time` | Forventet tid |
 | `delay_minutes` | Forsinkelse |
 | `destination` | Hillerød St. |
+| `minutes_until` | Minutter til forventet afgang |
 | `next_departures` | Liste med de næste 3 afgange |
 | `last_update` | Tidspunkt for seneste datahentning |
 

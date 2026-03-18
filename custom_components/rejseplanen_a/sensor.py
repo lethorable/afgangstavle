@@ -65,7 +65,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Opsæt sensorer."""
     scan_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
-    coordinator = RejseplanenCoordinator()
+    coordinator = RejseplanenCoordinator(min_interval=scan_interval)
     coordinator.update()
 
     add_entities(
@@ -80,12 +80,17 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 class RejseplanenCoordinator:
     """Henter og parser afgangstavlen fra Rejseplanen."""
 
-    def __init__(self):
+    def __init__(self, min_interval: timedelta = DEFAULT_SCAN_INTERVAL):
         self.departures: list[dict] = []
         self.last_update: datetime | None = None
         self.error: str | None = None
+        self._min_interval = min_interval
 
     def update(self):
+        # Undgå dobbelt-fetch når begge sensorer opdaterer i samme cyklus
+        if self.last_update and dt_util.now() - self.last_update < self._min_interval / 2:
+            return
+
         """Hent og parser HTML fra Rejseplanen."""
         try:
             headers = {
@@ -204,10 +209,12 @@ class NextDepartureSensor(SensorEntity):
             )
 
         first = deps[0]
+        minutes_until = max(0, int((first["expected"] - dt_util.now()).total_seconds() // 60))
         return {
             "planned_time": first["planned"].strftime("%H:%M"),
             "expected_time": first["expected"].strftime("%H:%M"),
             "delay_minutes": first["delay_minutes"],
+            "minutes_until": minutes_until,
             "destination": first["destination"],
             "next_departures": next3,
             "last_update": (
