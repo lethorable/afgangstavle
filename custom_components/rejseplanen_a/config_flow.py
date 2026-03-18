@@ -4,6 +4,11 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
 DOMAIN = "rejseplanen_a"
 DEFAULT_SCAN_INTERVAL = 60
@@ -31,7 +36,14 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(
                         CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
-                    ): vol.All(int, vol.Range(min=30, max=3600)),
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=30,
+                            max=3600,
+                            step=10,
+                            mode=NumberSelectorMode.BOX,
+                        )
+                    ),
                 }
             ),
         )

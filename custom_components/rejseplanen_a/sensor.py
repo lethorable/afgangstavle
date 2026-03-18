@@ -64,7 +64,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Opsæt sensorer fra config entry (UI-flow)."""
-    scan_interval = timedelta(seconds=entry.data.get(CONF_SCAN_INTERVAL, 60))
+    scan_interval = timedelta(seconds=int(entry.data.get(CONF_SCAN_INTERVAL, 60)))
     coordinator = RejseplanenCoordinator(min_interval=scan_interval)
     await hass.async_add_executor_job(coordinator.update)
     async_add_entities(
