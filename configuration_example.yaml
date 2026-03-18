@@ -1,0 +1,75 @@
+# ============================================================
+# configuration.yaml – tilføj dette
+# ============================================================
+sensor:
+  - platform: rejseplanen_a
+    scan_interval: 60          # opdater hvert minut
+
+
+# ============================================================
+# automations.yaml – eksempel-automationer
+# ============================================================
+
+# --- 1. Lys bliver rødt ved > 5 min forsinkelse ---
+- alias: "Linje A – forsinkelse lys rødt"
+  description: "Sætter stuelampen rød hvis næste A-tog mod Hillerød er > 5 min forsinket"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.linje_a_forsinkelse_minutter
+      above: 5
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: light.stue          # <-- ret til dit lysnavn
+      data:
+        color_name: red
+        brightness: 200
+  mode: single
+
+# --- 2. Lys tilbage til normalt når toget kører til tiden ---
+- alias: "Linje A – til tiden lys grønt"
+  description: "Sætter lyset grønt igen når forsinkelsen falder til under 5 min"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.linje_a_forsinkelse_minutter
+      below: 5
+  condition:
+    - condition: state
+      entity_id: light.stue
+      state: "on"
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: light.stue          # <-- ret til dit lysnavn
+      data:
+        color_name: green
+        brightness: 200
+  mode: single
+
+# --- 3. Notifikation på telefon ---
+- alias: "Linje A – forsinkelse notifikation"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.linje_a_forsinkelse_minutter
+      above: 5
+  action:
+    - service: notify.mobile_app_din_telefon   # <-- ret til dit notify-service navn
+      data:
+        title: "⚠️ Linje A forsinket"
+        message: >
+          Næste tog mod Hillerød (planlagt {{ state_attr('sensor.linje_a_naeste_afgang', 'planned_time') }})
+          er forsinket {{ states('sensor.linje_a_forsinkelse_minutter') }} min.
+          Forventet afgang: {{ state_attr('sensor.linje_a_naeste_afgang', 'expected_time') }}.
+  mode: single
+
+
+# ============================================================
+# Lovelace-kort (dashboard) – valgfrit
+# ============================================================
+# type: entities
+# title: Linje A – Åmarken → Hillerød
+# entities:
+#   - entity: sensor.linje_a_naeste_afgang
+#     name: Næste afgang
+#   - entity: sensor.linje_a_forsinkelse_minutter
+#     name: Forsinkelse
