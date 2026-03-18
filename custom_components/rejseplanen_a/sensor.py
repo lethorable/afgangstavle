@@ -33,6 +33,7 @@ import voluptuous as vol
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
     SensorEntity,
+    SensorStateClass,
 )
 from homeassistant.const import CONF_SCAN_INTERVAL
 import homeassistant.helpers.config_validation as cv
@@ -235,6 +236,7 @@ class DelayMinutesSensor(SensorEntity):
     _attr_unique_id = "rejseplanen_a_forsinkelse"
     _attr_icon = "mdi:clock-alert-outline"
     _attr_native_unit_of_measurement = "min"
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: RejseplanenCoordinator):
         self._coordinator = coordinator
