@@ -12,5 +12,15 @@
     "abort": {
       "already_configured": "Integration is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
   }
 }
