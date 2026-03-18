@@ -1,10 +1,11 @@
 {
   "domain": "rejseplanen_a",
   "name": "Rejseplanen Linje A – Åmarken mod Hillerød",
-  "version": "1.0.0",
-  "documentation": "https://github.com/thorbjorn/ha-rejseplanen-a",
+  "version": "1.1.0",
+  "documentation": "https://github.com/lethorable/afgangstavle",
   "requirements": ["beautifulsoup4==4.12.3", "lxml==5.2.1"],
   "dependencies": [],
   "codeowners": [],
-  "iot_class": "cloud_polling"
+  "iot_class": "cloud_polling",
+  "config_flow": true
 }
