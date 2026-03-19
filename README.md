@@ -33,18 +33,16 @@ Understøtter S-tog, regionaltog, metro og bus.
 1. Gå til **Indstillinger → Enheder og tjenester → Tilføj integration**.
 2. Søg efter **Rejseplanen Afgangstavle**.
 3. **Trin 1 – Søg station:** Skriv et stationsnavn (f.eks. `Nørreport` eller `Åmarken`).
-4. **Trin 2 – Vælg station og filtre:**
-   - Vælg station fra listen
-   - Linjefilter *(valgfrit)* – f.eks. `A` for kun linje A
-   - Destinationsfilter *(valgfrit)* – f.eks. `Hillerød` for kun afgange mod Hillerød
-   - Opdateringsinterval i sekunder (standard: 60)
-5. Klik **Send**. Sensorerne er klar.
+4. **Trin 2 – Vælg station:** Vælg station fra dropdown-listen.
+5. **Trin 3 – Vælg linje:** Dropdown med de linjer der aktuelt kører fra stationen, eller vælg *Alle linjer*.
+6. **Trin 4 – Vælg destination:** Dropdown med destinationer for den valgte linje (eller alle), samt opdateringsinterval i sekunder.
+7. Klik **Send**. Sensorerne er klar.
 
-> **Validering:** Linje- og destinationsfiltre valideres mod live-data fra stationens afgangstavle. Skriver du en ugyldig linje eller destination, vises en fejl med de tilgængelige linjer og destinationer ved den valgte station.
+Linjer og destinationer hentes live fra stationens afgangstavle — du kan kun vælge kombinationer der faktisk eksisterer.
 
 Du kan tilføje flere stationer ved at gentage processen.
 
-Vil du ændre filtre eller interval efterfølgende, klik **Konfigurér** på integrationskortet. Valideringen kører også her.
+Vil du ændre linje, destination eller interval efterfølgende, klik **Konfigurér** på integrationskortet.
 
 ---
 
