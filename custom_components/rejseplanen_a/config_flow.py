@@ -42,7 +42,7 @@ STBOARD_URL = (
     "https://webapp.rejseplanen.dk/bin/stboard.exe/mn"
     "?L=vs_rp4&input={station_id}&boardType=dep"
     "&productsFilter=1111111111111111"
-    "&time=now&selectDate=today&maxJourneys=20&start=yes"
+    "&time=now&selectDate=today&maxJourneys=100&start=yes"
 )
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; HomeAssistant/rejseplanen_a)"}
@@ -52,6 +52,10 @@ _DANISH_CHARS = str.maketrans(
 
 _ALL_LINES_LABEL = "(Alle linjer)"
 _ALL_DESTS_LABEL = "(Alle destinationer)"
+
+# Reelle linjenavne: A-H, BUS 10, METRO M3, RE 1285, IC 866, ICL 66 osv.
+# Skrammel fra parseren: stationsnavne med parenteser, kommaer, lange strenge
+_LINE_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9\s]{0,12}$")
 
 
 # ── Hjælpefunktioner ──────────────────────────────────────────────────────────
@@ -117,11 +121,14 @@ def _fetch_departures_raw(station_id: str) -> list[dict]:
             cells = row.find_all("td")
             if len(cells) < 5:
                 continue
-            line = cells[2].get_text(strip=True).upper()
+            line = cells[2].get_text(strip=True).upper().strip()
+            # Filtrer skrammel: stationsnavne, tidspunkter osv. der ender i linje-kolonnen
+            if not line or not _LINE_PATTERN.match(line):
+                continue
             # Destinationsnavnet er i <span class="bold"> inde i cellen
             bold = cells[4].find("span", class_="bold")
             dest = bold.get_text(strip=True) if bold else cells[4].get_text(strip=True).split("-")[0].strip()
-            if line and dest:
+            if not dest:
                 deps.append({"line": line, "dest": dest})
         _LOGGER.debug("Station %s: fandt %d afgange", station_id, len(deps))
         return deps
