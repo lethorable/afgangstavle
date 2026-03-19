@@ -2,23 +2,52 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rejseplanen Line A",
-        "description": "Monitor S-train line A from Åmarken towards Hillerød.",
+        "title": "Search for a station",
+        "description": "Type a station name to search Rejseplanen.",
         "data": {
+          "station_query": "Station name"
+        },
+        "data_description": {
+          "station_query": "E.g. 'Åmarken' or 'København H'"
+        }
+      },
+      "station": {
+        "title": "Select station and filters",
+        "description": "Pick a station from the list and optionally filter by line or destination.",
+        "data": {
+          "station_id": "Station",
+          "line_filter": "Line filter (optional)",
+          "destination_filter": "Destination filter (optional)",
           "scan_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "line_filter": "E.g. 'A' – leave blank for all lines",
+          "destination_filter": "E.g. 'Hillerød' – leave blank for all destinations",
+          "scan_interval": "Minimum 30 seconds"
         }
       }
     },
+    "error": {
+      "query_empty": "Please enter a station name.",
+      "no_stations_found": "No stations found. Try a different search term."
+    },
     "abort": {
-      "already_configured": "Integration is already configured."
+      "already_configured": "This station is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Settings",
+        "description": "The station cannot be changed after setup.",
         "data": {
+          "line_filter": "Line filter (optional)",
+          "destination_filter": "Destination filter (optional)",
           "scan_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "line_filter": "E.g. 'A' – leave blank for all lines",
+          "destination_filter": "E.g. 'Hillerød' – leave blank for all destinations"
         }
       }
     }

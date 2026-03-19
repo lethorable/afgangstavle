@@ -2,23 +2,52 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rejseplanen Linje A",
-        "description": "Opsæt overvågning af S-tog linje A fra Åmarken mod Hillerød.",
+        "title": "Søg station",
+        "description": "Skriv et stationsnavn for at søge i Rejseplanen.",
         "data": {
+          "station_query": "Stationsnavn"
+        },
+        "data_description": {
+          "station_query": "F.eks. 'Åmarken' eller 'København H'"
+        }
+      },
+      "station": {
+        "title": "Vælg station og filtre",
+        "description": "Vælg en station fra listen og angiv valgfrie filtre.",
+        "data": {
+          "station_id": "Station",
+          "line_filter": "Linjefilter (valgfrit)",
+          "destination_filter": "Destinationsfilter (valgfrit)",
           "scan_interval": "Opdateringsinterval (sekunder)"
+        },
+        "data_description": {
+          "line_filter": "F.eks. 'A' – lad feltet stå tomt for alle linjer",
+          "destination_filter": "F.eks. 'Hillerød' – lad feltet stå tomt for alle destinationer",
+          "scan_interval": "Minimum 30 sekunder"
         }
       }
     },
+    "error": {
+      "query_empty": "Angiv et stationsnavn.",
+      "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord."
+    },
     "abort": {
-      "already_configured": "Integrationen er allerede opsat."
+      "already_configured": "Denne station er allerede opsat."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Indstillinger",
+        "description": "Stationen kan ikke ændres efter opsætning.",
         "data": {
+          "line_filter": "Linjefilter (valgfrit)",
+          "destination_filter": "Destinationsfilter (valgfrit)",
           "scan_interval": "Opdateringsinterval (sekunder)"
+        },
+        "data_description": {
+          "line_filter": "F.eks. 'A' – lad feltet stå tomt for alle linjer",
+          "destination_filter": "F.eks. 'Hillerød' – lad feltet stå tomt for alle destinationer"
         }
       }
     }
