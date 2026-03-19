@@ -38,10 +38,19 @@ AUTOCOMPLETE_URL = (
     "?getstop=1&REQ0JourneyStopsS0A=255&REQ0JourneyStopsS0G={query}&js=true"
 )
 
+_DANISH_CHARS = str.maketrans({"å": "aa", "Å": "Aa", "ø": "oe", "Ø": "Oe", "æ": "ae", "Æ": "Ae"})
+
+
+def _normalize_query(query: str) -> str:
+    """Oversæt danske bogstaver til ASCII så Rejseplanens API finder stationen korrekt.
+    F.eks. 'Åmarken' → 'Aamarken', 'Nørreport' → 'Noerreport'.
+    """
+    return query.translate(_DANISH_CHARS)
+
 
 def _fetch_stations(query: str) -> list[dict]:
     """Søg efter stationer via Rejseplanens autocomplete-endpoint (synkront)."""
-    url = AUTOCOMPLETE_URL.format(query=requests.utils.quote(query))
+    url = AUTOCOMPLETE_URL.format(query=requests.utils.quote(_normalize_query(query)))
     headers = {"User-Agent": "Mozilla/5.0 (compatible; HomeAssistant/rejseplanen_a)"}
     try:
         resp = requests.get(url, headers=headers, timeout=10)
@@ -147,7 +156,7 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_STATION_ID): SelectSelector(
                         SelectSelectorConfig(
                             options=station_options,
-                            mode=SelectSelectorMode.LIST,
+                            mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
                     vol.Optional(CONF_LINE_FILTER, default=""): TextSelector(
