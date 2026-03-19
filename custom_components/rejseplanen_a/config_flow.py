@@ -45,14 +45,19 @@ STBOARD_URL = (
     "&time=now&selectDate=today&maxJourneys=20&start=yes"
 )
 
+_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; HomeAssistant/rejseplanen_a)"}
 _DANISH_CHARS = str.maketrans(
     {"å": "aa", "Å": "Aa", "ø": "oe", "Ø": "Oe", "æ": "ae", "Æ": "Ae"}
 )
-_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; HomeAssistant/rejseplanen_a)"}
+
+_ALL_LINES_LABEL = "(Alle linjer)"
+_ALL_DESTS_LABEL = "(Alle destinationer)"
+
+
+# ── Hjælpefunktioner ──────────────────────────────────────────────────────────
 
 
 def _normalize_query(query: str) -> str:
-    """Å→Aa, Ø→Oe, Æ→Ae så Rejseplanens API finder stationen korrekt."""
     return query.translate(_DANISH_CHARS)
 
 
@@ -68,7 +73,7 @@ def _fetch_stations(query: str) -> list[dict]:
             return []
         data = json.loads(m.group(1))
         return [
-            {"value": s["value"], "id": s["id"].lstrip("0") if "@" not in s.get("id", "") else s.get("extId", "").lstrip("0")}
+            {"value": s["value"], "id": s.get("extId", "").lstrip("0")}
             for s in data.get("suggestions", [])
             if "Sta" in s.get("typeStr", "") and s.get("extId", "").lstrip("0")
         ]
@@ -77,67 +82,65 @@ def _fetch_stations(query: str) -> list[dict]:
         return []
 
 
-def _fetch_available(station_id: str) -> tuple[list[str], list[str]]:
-    """Hent stboard og returner (linjer, destinationer) som sorterede lister.
-
-    Bruges til validering af linje- og destinationsfiltre.
-    Returnerer ([], []) ved fejl — validering springes da over.
-    """
+def _fetch_departures_raw(station_id: str) -> list[dict]:
+    """Hent stboard og returner liste af {line, dest} dicts til dropdown-opbygning."""
     url = STBOARD_URL.format(station_id=station_id)
     try:
         resp = requests.get(url, headers=_HEADERS, timeout=10)
         resp.raise_for_status()
-        resp.encoding = "latin-1"  # Stboardet returnerer latin-1, ikke UTF-8
+        resp.encoding = "latin-1"
         soup = BeautifulSoup(resp.text, "lxml")
-        lines, dests = set(), set()
+        deps = []
         for row in soup.select("table tr"):
             cells = row.find_all("td")
             if len(cells) < 5:
                 continue
             line = cells[2].get_text(strip=True).upper()
             dest = cells[4].get_text(strip=True)
-            if line:
-                lines.add(line)
-            if dest:
-                dests.add(dest)
-        _LOGGER.debug("Station %s: fandt linjer=%s", station_id, sorted(lines))
-        return sorted(lines), sorted(dests)
+            if line and dest:
+                deps.append({"line": line, "dest": dest})
+        _LOGGER.debug("Station %s: fandt %d afgange", station_id, len(deps))
+        return deps
     except Exception as exc:  # noqa: BLE001
-        _LOGGER.warning("Kunne ikke hente stboard til validering (station %s): %s", station_id, exc)
-        return [], []
+        _LOGGER.warning("Kunne ikke hente stboard (station %s): %s", station_id, exc)
+        return []
 
 
-def _validate_filters(
-    line: str,
-    dest: str,
-    avail_lines: list[str],
-    avail_dests: list[str],
-) -> dict[str, str]:
-    """Valider linje og destination mod kendte afgange. Returnerer errors-dict.
-
-    Linje: exact match (bruger må skrive præcis det linjenavn der vises).
-    Destination: substring match, case-insensitivt (delnavn er nok).
-    Springer over hvis ingen afgange blev hentet (f.eks. nat/fejl).
-    """
-    errors: dict[str, str] = {}
-    if not avail_lines and not avail_dests:
-        return errors  # Ingen data — spring validering over
-    if line and line.upper() not in avail_lines:
-        errors[CONF_LINE_FILTER] = "line_not_found"
-    if dest and not any(dest.lower() in d.lower() for d in avail_dests):
-        errors[CONF_DESTINATION_FILTER] = "destination_not_found"
-    return errors
+def _line_options(departures: list[dict]) -> list[dict]:
+    """Byg dropdown-options for linjevælger."""
+    lines = sorted(set(d["line"] for d in departures))
+    return [{"value": "", "label": _ALL_LINES_LABEL}] + [
+        {"value": l, "label": l} for l in lines
+    ]
 
 
-# ── Config flow ───────────────────────────────────────────────────────────────
+def _dest_options(departures: list[dict], line_filter: str) -> list[dict]:
+    """Byg dropdown-options for destinationsvælger, filtreret efter linje."""
+    if line_filter:
+        dests = sorted(set(d["dest"] for d in departures if d["line"] == line_filter))
+    else:
+        dests = sorted(set(d["dest"] for d in departures))
+    return [{"value": "", "label": _ALL_DESTS_LABEL}] + [
+        {"value": d, "label": d} for d in dests
+    ]
+
+
+# ── Config flow (4 trin) ─────────────────────────────────────────────────────
+
 
 class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """To-trins opsætning: søg station → vælg station + filtre."""
+    """Søg station → vælg station → vælg linje → vælg destination."""
 
     VERSION = 1
 
     def __init__(self):
         self._stations: list[dict] = []
+        self._station_id: str = ""
+        self._station_name: str = ""
+        self._departures: list[dict] = []
+        self._line_filter: str = ""
+
+    # ── Trin 1: Søg station ──────────────────────────────────────────────
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -166,52 +169,22 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    # ── Trin 2: Vælg station ─────────────────────────────────────────────
+
     async def async_step_station(self, user_input=None):
-        errors: dict[str, str] = {}
-        placeholders = {"available_lines": "–", "available_destinations": "–"}
-
         if user_input is not None:
-            station_id = user_input[CONF_STATION_ID]
-            station_name = next(
-                (s["value"] for s in self._stations if s["id"] == station_id),
-                station_id,
+            self._station_id = user_input[CONF_STATION_ID]
+            self._station_name = next(
+                (s["value"] for s in self._stations if s["id"] == self._station_id),
+                self._station_id,
             )
-            line = user_input.get(CONF_LINE_FILTER, "").strip()
-            dest = user_input.get(CONF_DESTINATION_FILTER, "").strip()
+            await self.async_set_unique_id(f"{DOMAIN}_{self._station_id}")
+            self._abort_if_unique_id_configured()
 
-            if line or dest:
-                avail_lines, avail_dests = await self.hass.async_add_executor_job(
-                    _fetch_available, station_id
-                )
-                errors = _validate_filters(line, dest, avail_lines, avail_dests)
-                if errors:
-                    placeholders = {
-                        "available_lines": ", ".join(avail_lines) or "–",
-                        "available_destinations": ", ".join(avail_dests) or "–",
-                    }
-
-            if not errors:
-                await self.async_set_unique_id(f"{DOMAIN}_{station_id}")
-                self._abort_if_unique_id_configured()
-
-                title = station_name
-                if line:
-                    title += f" – Linje {line.upper()}"
-                if dest:
-                    title += f" → {dest}"
-
-                return self.async_create_entry(
-                    title=title,
-                    data={
-                        CONF_STATION_ID: station_id,
-                        CONF_STATION_NAME: station_name,
-                        CONF_LINE_FILTER: line,
-                        CONF_DESTINATION_FILTER: dest,
-                        CONF_SCAN_INTERVAL: int(
-                            user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-                        ),
-                    },
-                )
+            self._departures = await self.hass.async_add_executor_job(
+                _fetch_departures_raw, self._station_id
+            )
+            return await self.async_step_line()
 
         return self.async_show_form(
             step_id="station",
@@ -226,11 +199,68 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    vol.Optional(CONF_LINE_FILTER, default=""): TextSelector(
-                        TextSelectorConfig(type=TextSelectorType.TEXT)
+                }
+            ),
+        )
+
+    # ── Trin 3: Vælg linje ───────────────────────────────────────────────
+
+    async def async_step_line(self, user_input=None):
+        if user_input is not None:
+            self._line_filter = user_input.get(CONF_LINE_FILTER, "")
+            return await self.async_step_destination()
+
+        return self.async_show_form(
+            step_id="line",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_LINE_FILTER, default=""): SelectSelector(
+                        SelectSelectorConfig(
+                            options=_line_options(self._departures),
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
                     ),
-                    vol.Optional(CONF_DESTINATION_FILTER, default=""): TextSelector(
-                        TextSelectorConfig(type=TextSelectorType.TEXT)
+                }
+            ),
+        )
+
+    # ── Trin 4: Vælg destination + interval ──────────────────────────────
+
+    async def async_step_destination(self, user_input=None):
+        if user_input is not None:
+            dest = user_input.get(CONF_DESTINATION_FILTER, "")
+            scan_interval = int(
+                user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            )
+
+            title = self._station_name
+            if self._line_filter:
+                title += f" – {self._line_filter}"
+            if dest:
+                title += f" → {dest}"
+
+            return self.async_create_entry(
+                title=title,
+                data={
+                    CONF_STATION_ID: self._station_id,
+                    CONF_STATION_NAME: self._station_name,
+                    CONF_LINE_FILTER: self._line_filter,
+                    CONF_DESTINATION_FILTER: dest,
+                    CONF_SCAN_INTERVAL: scan_interval,
+                },
+            )
+
+        return self.async_show_form(
+            step_id="destination",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_DESTINATION_FILTER, default=""): SelectSelector(
+                        SelectSelectorConfig(
+                            options=_dest_options(
+                                self._departures, self._line_filter
+                            ),
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
                     ),
                     vol.Optional(
                         CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
@@ -241,8 +271,6 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ),
                 }
             ),
-            errors=errors,
-            description_placeholders=placeholders,
         )
 
     @staticmethod
@@ -250,61 +278,86 @@ class RejseplanenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return RejseplanenOptionsFlow(config_entry)
 
 
-# ── Options flow ──────────────────────────────────────────────────────────────
+# ── Options flow (2 trin) ─────────────────────────────────────────────────────
+
 
 class RejseplanenOptionsFlow(config_entries.OptionsFlow):
-    """Rediger linje, destination og interval — ikke stationen."""
+    """Rediger linje → destination → interval. Station er låst."""
 
     def __init__(self, config_entry):
         self._config_entry = config_entry
+        self._departures: list[dict] = []
+        self._line_filter: str = ""
+
+    # ── Trin 1: Vælg linje ───────────────────────────────────────────────
 
     async def async_step_init(self, user_input=None):
-        errors: dict[str, str] = {}
         merged = {**self._config_entry.data, **self._config_entry.options}
         station_id = merged.get(CONF_STATION_ID, "")
-        placeholders = {"available_lines": "–", "available_destinations": "–"}
 
         if user_input is not None:
-            line = user_input.get(CONF_LINE_FILTER, "").strip()
-            dest = user_input.get(CONF_DESTINATION_FILTER, "").strip()
+            self._line_filter = user_input.get(CONF_LINE_FILTER, "")
+            return await self.async_step_options_dest()
 
-            if line or dest:
-                avail_lines, avail_dests = await self.hass.async_add_executor_job(
-                    _fetch_available, station_id
-                )
-                errors = _validate_filters(line, dest, avail_lines, avail_dests)
-                if errors:
-                    placeholders = {
-                        "available_lines": ", ".join(avail_lines) or "–",
-                        "available_destinations": ", ".join(avail_dests) or "–",
-                    }
-
-            if not errors:
-                return self.async_create_entry(
-                    title="",
-                    data={
-                        CONF_LINE_FILTER: line,
-                        CONF_DESTINATION_FILTER: dest,
-                        CONF_SCAN_INTERVAL: int(
-                            user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-                        ),
-                    },
-                )
+        self._departures = await self.hass.async_add_executor_job(
+            _fetch_departures_raw, station_id
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
+                    vol.Required(
                         CONF_LINE_FILTER, default=merged.get(CONF_LINE_FILTER, "")
-                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
-                    vol.Optional(
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=_line_options(self._departures),
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    # ── Trin 2: Vælg destination + interval ──────────────────────────────
+
+    async def async_step_options_dest(self, user_input=None):
+        merged = {**self._config_entry.data, **self._config_entry.options}
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_LINE_FILTER: self._line_filter,
+                    CONF_DESTINATION_FILTER: user_input.get(
+                        CONF_DESTINATION_FILTER, ""
+                    ),
+                    CONF_SCAN_INTERVAL: int(
+                        user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                    ),
+                },
+            )
+
+        return self.async_show_form(
+            step_id="options_dest",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
                         CONF_DESTINATION_FILTER,
                         default=merged.get(CONF_DESTINATION_FILTER, ""),
-                    ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=_dest_options(
+                                self._departures, self._line_filter
+                            ),
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=int(merged.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+                        default=int(
+                            merged.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                        ),
                     ): NumberSelector(
                         NumberSelectorConfig(
                             min=30, max=3600, step=10, mode=NumberSelectorMode.BOX
@@ -312,6 +365,4 @@ class RejseplanenOptionsFlow(config_entries.OptionsFlow):
                     ),
                 }
             ),
-            errors=errors,
-            description_placeholders=placeholders,
         )

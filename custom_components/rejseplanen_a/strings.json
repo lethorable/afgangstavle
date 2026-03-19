@@ -12,26 +12,31 @@
         }
       },
       "station": {
-        "title": "Vælg station og filtre",
-        "description": "Vælg en station fra listen og angiv valgfrie filtre.\n\nTilgængelige linjer: {available_lines}\nTilgængelige destinationer: {available_destinations}",
+        "title": "Vælg station",
+        "description": "Vælg den station du vil overvåge.",
         "data": {
-          "station_id": "Station",
-          "line_filter": "Linjefilter (valgfrit)",
-          "destination_filter": "Destinationsfilter (valgfrit)",
+          "station_id": "Station"
+        }
+      },
+      "line": {
+        "title": "Vælg linje",
+        "description": "Vælg en linje eller vis afgange for alle linjer.",
+        "data": {
+          "line_filter": "Linje"
+        }
+      },
+      "destination": {
+        "title": "Vælg destination",
+        "description": "Vælg en destination eller vis afgange mod alle destinationer.",
+        "data": {
+          "destination_filter": "Destination",
           "scan_interval": "Opdateringsinterval (sekunder)"
-        },
-        "data_description": {
-          "line_filter": "F.eks. 'A' – lad feltet stå tomt for alle linjer",
-          "destination_filter": "F.eks. 'Hillerød' – lad feltet stå tomt for alle destinationer",
-          "scan_interval": "Minimum 30 sekunder"
         }
       }
     },
     "error": {
       "query_empty": "Angiv et stationsnavn.",
-      "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord.",
-      "line_not_found": "Linjen findes ikke ved denne station. Skriv nøjagtigt et af linjerne vist ovenfor (f.eks. 'A', ikke 'Linje A').",
-      "destination_not_found": "Destinationen findes ikke ved denne station. Se tilgængelige destinationer ovenfor."
+      "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord."
     },
     "abort": {
       "already_configured": "Denne station er allerede opsat."
@@ -40,16 +45,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Indstillinger",
-        "description": "Stationen kan ikke ændres efter opsætning.\n\nTilgængelige linjer: {available_lines}\nTilgængelige destinationer: {available_destinations}",
+        "title": "Vælg linje",
+        "description": "Stationen kan ikke ændres. Vælg en linje eller vis alle.",
         "data": {
-          "line_filter": "Linjefilter (valgfrit)",
-          "destination_filter": "Destinationsfilter (valgfrit)",
+          "line_filter": "Linje"
+        }
+      },
+      "options_dest": {
+        "title": "Vælg destination",
+        "description": "Vælg en destination eller vis alle.",
+        "data": {
+          "destination_filter": "Destination",
           "scan_interval": "Opdateringsinterval (sekunder)"
-        },
-        "data_description": {
-          "line_filter": "F.eks. 'A' – lad feltet stå tomt for alle linjer",
-          "destination_filter": "F.eks. 'Hillerød' – lad feltet stå tomt for alle destinationer"
         }
       }
     }
