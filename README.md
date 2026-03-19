@@ -40,9 +40,11 @@ Understøtter S-tog, regionaltog, metro og bus.
    - Opdateringsinterval i sekunder (standard: 60)
 5. Klik **Send**. Sensorerne er klar.
 
+> **Validering:** Linje- og destinationsfiltre valideres mod live-data fra stationens afgangstavle. Skriver du en ugyldig linje eller destination, vises en fejl med de tilgængelige linjer og destinationer ved den valgte station.
+
 Du kan tilføje flere stationer ved at gentage processen.
 
-Vil du ændre filtre eller interval efterfølgende, klik **Konfigurér** på integrationskortet.
+Vil du ændre filtre eller interval efterfølgende, klik **Konfigurér** på integrationskortet. Valideringen kører også her.
 
 ---
 
