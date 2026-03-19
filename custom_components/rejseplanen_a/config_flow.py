@@ -129,7 +129,8 @@ def _fetch_departures_raw(station_id: str) -> list[dict]:
             bold = cells[4].find("span", class_="bold")
             dest = bold.get_text(strip=True) if bold else cells[4].get_text(strip=True).split("-")[0].strip()
             if not dest:
-                deps.append({"line": line, "dest": dest})
+                continue
+            deps.append({"line": line, "dest": dest})
         _LOGGER.debug("Station %s: fandt %d afgange", station_id, len(deps))
         return deps
     except Exception as exc:  # noqa: BLE001
