@@ -115,7 +115,7 @@ def _fetch_departures_raw(station_id: str) -> list[dict]:
         resp = requests.get(url, headers=_HEADERS, timeout=10)
         resp.raise_for_status()
         resp.encoding = "latin-1"
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(resp.text, "html.parser")
         deps = []
         for row in soup.select("table tr"):
             cells = row.find_all("td")

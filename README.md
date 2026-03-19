@@ -113,6 +113,5 @@ Se [`configuration_example.yaml`](configuration_example.yaml) for eksempler på:
 
 ## Krav
 
-Følgende Python-pakker installeres automatisk af Home Assistant:
+Følgende Python-pakke installeres automatisk af Home Assistant:
 - `beautifulsoup4`
-- `lxml`

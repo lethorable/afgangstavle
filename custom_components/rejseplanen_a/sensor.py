@@ -177,7 +177,7 @@ class RejseplanenCoordinator:
         return dt
 
     def _parse(self, html: str):
-        soup = BeautifulSoup(html, "lxml")
+        soup = BeautifulSoup(html, "html.parser")
         rows = soup.select("table tr")
         departures = []
 
