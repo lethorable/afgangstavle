@@ -13,7 +13,7 @@
       },
       "station": {
         "title": "Vælg station og filtre",
-        "description": "Vælg en station fra listen og angiv valgfrie filtre.",
+        "description": "Vælg en station fra listen og angiv valgfrie filtre.\n\nTilgængelige linjer: {available_lines}\nTilgængelige destinationer: {available_destinations}",
         "data": {
           "station_id": "Station",
           "line_filter": "Linjefilter (valgfrit)",
@@ -29,7 +29,9 @@
     },
     "error": {
       "query_empty": "Angiv et stationsnavn.",
-      "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord."
+      "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord.",
+      "line_not_found": "Linjen findes ikke ved denne station. Se tilgængelige linjer ovenfor.",
+      "destination_not_found": "Destinationen findes ikke ved denne station. Se tilgængelige destinationer ovenfor."
     },
     "abort": {
       "already_configured": "Denne station er allerede opsat."
@@ -39,7 +41,7 @@
     "step": {
       "init": {
         "title": "Indstillinger",
-        "description": "Stationen kan ikke ændres efter opsætning.",
+        "description": "Stationen kan ikke ændres efter opsætning.\n\nTilgængelige linjer: {available_lines}\nTilgængelige destinationer: {available_destinations}",
         "data": {
           "line_filter": "Linjefilter (valgfrit)",
           "destination_filter": "Destinationsfilter (valgfrit)",

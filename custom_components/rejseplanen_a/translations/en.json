@@ -13,7 +13,7 @@
       },
       "station": {
         "title": "Select station and filters",
-        "description": "Pick a station from the list and optionally filter by line or destination.",
+        "description": "Pick a station from the list and optionally filter by line or destination.\n\nAvailable lines: {available_lines}\nAvailable destinations: {available_destinations}",
         "data": {
           "station_id": "Station",
           "line_filter": "Line filter (optional)",
@@ -29,7 +29,9 @@
     },
     "error": {
       "query_empty": "Please enter a station name.",
-      "no_stations_found": "No stations found. Try a different search term."
+      "no_stations_found": "No stations found. Try a different search term.",
+      "line_not_found": "Line not found at this station. See available lines above.",
+      "destination_not_found": "Destination not found at this station. See available destinations above."
     },
     "abort": {
       "already_configured": "This station is already configured."
@@ -39,7 +41,7 @@
     "step": {
       "init": {
         "title": "Settings",
-        "description": "The station cannot be changed after setup.",
+        "description": "The station cannot be changed after setup.\n\nAvailable lines: {available_lines}\nAvailable destinations: {available_destinations}",
         "data": {
           "line_filter": "Line filter (optional)",
           "destination_filter": "Destination filter (optional)",
