@@ -189,7 +189,7 @@ class RejseplanenCoordinator:
             planned_raw = cells[0].get_text(strip=True)
             expected_raw = cells[1].get_text(strip=True)
             line_raw = cells[2].get_text(strip=True).upper()
-            destination_raw = cells[4].get_text(strip=True)
+            destination_raw = cells[4].get_text(separator="\n", strip=True).split("\n")[0].strip()
 
             if self._line_filter and self._line_filter not in line_raw:
                 continue

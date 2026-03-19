@@ -96,7 +96,8 @@ def _fetch_departures_raw(station_id: str) -> list[dict]:
             if len(cells) < 5:
                 continue
             line = cells[2].get_text(strip=True).upper()
-            dest = cells[4].get_text(strip=True)
+            # Destinationscellen indeholder også "Se alle stop" og "Luk"-knapper
+            dest = cells[4].get_text(separator="\n", strip=True).split("\n")[0].strip()
             if line and dest:
                 deps.append({"line": line, "dest": dest})
         _LOGGER.debug("Station %s: fandt %d afgange", station_id, len(deps))
