@@ -30,7 +30,7 @@
     "error": {
       "query_empty": "Angiv et stationsnavn.",
       "no_stations_found": "Ingen stationer fundet. Prøv et andet søgeord.",
-      "line_not_found": "Linjen findes ikke ved denne station. Se tilgængelige linjer ovenfor.",
+      "line_not_found": "Linjen findes ikke ved denne station. Skriv nøjagtigt et af linjerne vist ovenfor (f.eks. 'A', ikke 'Linje A').",
       "destination_not_found": "Destinationen findes ikke ved denne station. Se tilgængelige destinationer ovenfor."
     },
     "abort": {

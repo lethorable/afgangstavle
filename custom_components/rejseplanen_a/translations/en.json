@@ -30,7 +30,7 @@
     "error": {
       "query_empty": "Please enter a station name.",
       "no_stations_found": "No stations found. Try a different search term.",
-      "line_not_found": "Line not found at this station. See available lines above.",
+      "line_not_found": "Line not found at this station. Enter the exact line name shown above (e.g. 'A', not 'Line A').",
       "destination_not_found": "Destination not found at this station. See available destinations above."
     },
     "abort": {

@@ -87,6 +87,7 @@ def _fetch_available(station_id: str) -> tuple[list[str], list[str]]:
     try:
         resp = requests.get(url, headers=_HEADERS, timeout=10)
         resp.raise_for_status()
+        resp.encoding = "latin-1"  # Stboardet returnerer latin-1, ikke UTF-8
         soup = BeautifulSoup(resp.text, "lxml")
         lines, dests = set(), set()
         for row in soup.select("table tr"):
@@ -99,6 +100,7 @@ def _fetch_available(station_id: str) -> tuple[list[str], list[str]]:
                 lines.add(line)
             if dest:
                 dests.add(dest)
+        _LOGGER.debug("Station %s: fandt linjer=%s", station_id, sorted(lines))
         return sorted(lines), sorted(dests)
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("Kunne ikke hente stboard til validering (station %s): %s", station_id, exc)
@@ -111,11 +113,16 @@ def _validate_filters(
     avail_lines: list[str],
     avail_dests: list[str],
 ) -> dict[str, str]:
-    """Valider linje og destination mod kendte afgange. Returnerer errors-dict."""
+    """Valider linje og destination mod kendte afgange. Returnerer errors-dict.
+
+    Linje: exact match (bruger må skrive præcis det linjenavn der vises).
+    Destination: substring match, case-insensitivt (delnavn er nok).
+    Springer over hvis ingen afgange blev hentet (f.eks. nat/fejl).
+    """
     errors: dict[str, str] = {}
     if not avail_lines and not avail_dests:
         return errors  # Ingen data — spring validering over
-    if line and not any(line.upper() in l for l in avail_lines):
+    if line and line.upper() not in avail_lines:
         errors[CONF_LINE_FILTER] = "line_not_found"
     if dest and not any(dest.lower() in d.lower() for d in avail_dests):
         errors[CONF_DESTINATION_FILTER] = "destination_not_found"
