@@ -46,17 +46,23 @@ def _fetch_stations(query: str) -> list[dict]:
     try:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
+        # API'et returnerer latin-1 selvom det ligner UTF-8
+        resp.encoding = "latin-1"
         text = resp.text.strip()
-        m = re.search(r"SLs\.sls\s*=\s*(\{.*\})", text, re.DOTALL)
+        # Svar-format: SLs.sls={...};SLs.showSuggestion();
+        m = re.search(r"SLs\.sls\s*=\s*(\{.*?\})\s*;", text, re.DOTALL)
         if not m:
             _LOGGER.error("Uventet format fra autocomplete-API: %s", text[:200])
             return []
         data = json.loads(m.group(1))
-        return [
-            {"value": s["value"], "id": s["id"]}
-            for s in data.get("suggestions", [])
-            if s.get("type") == "ST"
-        ]
+        results = []
+        for s in data.get("suggestions", []):
+            ext_id = s.get("extId", "").lstrip("0")
+            name = s.get("value", "")
+            # typeStr "[Sta/Stp]" = station/stoppested
+            if ext_id and "Sta" in s.get("typeStr", ""):
+                results.append({"value": name, "id": ext_id})
+        return results
     except Exception as exc:  # noqa: BLE001
         _LOGGER.error("Fejl ved autocomplete-opslag: %s", exc)
         return []
