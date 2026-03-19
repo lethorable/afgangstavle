@@ -61,8 +61,8 @@ def _normalize_query(query: str) -> str:
     return query.translate(_DANISH_CHARS)
 
 
-def _fetch_stations(query: str) -> list[dict]:
-    """Søg stationer via Rejseplanens autocomplete (synkront)."""
+def _autocomplete(query: str) -> list[dict]:
+    """Kør ét autocomplete-opslag, returner rå suggestions."""
     url = AUTOCOMPLETE_URL.format(query=requests.utils.quote(_normalize_query(query)))
     try:
         resp = requests.get(url, headers=_HEADERS, timeout=10)
@@ -71,15 +71,37 @@ def _fetch_stations(query: str) -> list[dict]:
         m = re.search(r"SLs\.sls\s*=\s*(\{.*?\})\s*;", resp.text.strip(), re.DOTALL)
         if not m:
             return []
-        data = json.loads(m.group(1))
-        return [
-            {"value": s["value"], "id": s.get("extId", "").lstrip("0")}
-            for s in data.get("suggestions", [])
-            if "Sta" in s.get("typeStr", "") and s.get("extId", "").lstrip("0")
-        ]
+        return json.loads(m.group(1)).get("suggestions", [])
     except Exception as exc:  # noqa: BLE001
         _LOGGER.error("Fejl ved autocomplete-opslag: %s", exc)
         return []
+
+
+def _fetch_stations(query: str) -> list[dict]:
+    """Søg stationer via flere autocomplete-opslag for at fange varianter.
+
+    Rejseplanens API returnerer ofte kun ét exact-match resultat.
+    'Ryparken' og 'Ryparken St.' er f.eks. to forskellige stationer.
+    Vi søger med original query + ' St' for at finde begge.
+    """
+    queries = [query]
+    if not query.lower().endswith((" st", " st.", " station")):
+        queries.append(f"{query} St")
+
+    seen_ids: set[str] = set()
+    results: list[dict] = []
+
+    for q in queries:
+        for s in _autocomplete(q):
+            ext_id = s.get("extId", "").lstrip("0")
+            if not ext_id or ext_id in seen_ids:
+                continue
+            if "Sta" not in s.get("typeStr", ""):
+                continue
+            seen_ids.add(ext_id)
+            results.append({"value": s["value"], "id": ext_id})
+
+    return results
 
 
 def _fetch_departures_raw(station_id: str) -> list[dict]:
